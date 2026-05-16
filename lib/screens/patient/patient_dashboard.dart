@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
 import '../../models/task_model.dart';
 import '../../models/user_model.dart';
@@ -11,6 +13,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../widgets/initials_avatar.dart';
+import '../settings_screen.dart';
 
 class PatientDashboard extends ConsumerStatefulWidget {
   const PatientDashboard({super.key});
@@ -49,8 +52,11 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) =>
-          const Scaffold(body: Center(child: Text('Erro ao carregar perfil'))),
+      error: (_, _) => Scaffold(
+        body: Center(
+          child: Text(AppLocalizations.of(context).errorLoadingProfile),
+        ),
+      ),
     );
   }
 }
@@ -134,6 +140,7 @@ class _HomeTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final tasksAsync = ref.watch(patientTasksProvider);
     final nextSessionAsync = ref.watch(patientNextSessionProvider);
 
@@ -153,8 +160,8 @@ class _HomeTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Olá,',
-                      style: TextStyle(
+                  Text(t.patientHi,
+                      style: const TextStyle(
                           color: MtColors.muted, fontSize: 13)),
                   Text(
                     patient.firstName,
@@ -186,9 +193,9 @@ class _HomeTab extends ConsumerWidget {
               ? _NoSessionCard(therapistId: patient.therapistId)
               : _NextSessionCard(session: s),
           loading: () =>
-              const _NextSessionPlaceholder(text: 'Carregando…'),
+              _NextSessionPlaceholder(text: t.commonLoading),
           error: (_, _) =>
-              const _NextSessionPlaceholder(text: 'Erro ao carregar'),
+              _NextSessionPlaceholder(text: t.patientLoadingError),
         ),
         const SizedBox(height: 22),
 
@@ -196,18 +203,18 @@ class _HomeTab extends ConsumerWidget {
         tasksAsync.when(
           data: (tasks) => _ActivitiesSection(
             tasks: tasks,
-            onComplete: (t) async {
+            onComplete: (task) async {
               try {
                 await ref
                     .read(firestoreServiceProvider)
-                    .completeTask(t.id);
+                    .completeTask(task.id);
               } catch (_) {}
             },
           ),
           loading: () =>
               const Center(child: CircularProgressIndicator()),
           error: (_, _) =>
-              const Center(child: Text('Erro ao carregar atividades')),
+              Center(child: Text(t.patientActivitiesLoadingError)),
         ),
       ],
     );
@@ -222,11 +229,14 @@ class _CalendarTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final therapistRef = patient.therapistId == null
+        ? t.placeholderYourTherapist
+        : t.placeholderDr;
     return _PlaceholderTab(
       icon: Icons.calendar_today_outlined,
-      title: 'Sua agenda',
-      message:
-          'Em breve, você verá aqui todas as suas próximas sessões agendadas com ${patient.therapistId == null ? "seu terapeuta" : "Dra./Dr."}.',
+      title: t.tabCalendarTitle,
+      message: t.tabCalendarMsg(therapistRef),
     );
   }
 }
@@ -237,19 +247,20 @@ class _ActivityTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final tasksAsync = ref.watch(patientTasksProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Sua evolução',
-              style: TextStyle(
+          Text(t.evolutionTitle,
+              style: const TextStyle(
                   fontSize: 22, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          const Text(
-            'Acompanhe sua adesão ao tratamento.',
-            style: TextStyle(color: MtColors.muted, fontSize: 13),
+          Text(
+            t.evolutionSubtitle,
+            style: const TextStyle(color: MtColors.muted, fontSize: 13),
           ),
           const SizedBox(height: 18),
           Expanded(
@@ -277,8 +288,8 @@ class _ActivityTab extends ConsumerWidget {
                                   fontWeight: FontWeight.w700,
                                   color: MtColors.teal)),
                           const SizedBox(height: 4),
-                          const Text('de adesão',
-                              style: TextStyle(
+                          Text(t.evolutionAdherence,
+                              style: const TextStyle(
                                   color: MtColors.muted,
                                   fontSize: 13)),
                           const SizedBox(height: 12),
@@ -299,13 +310,14 @@ class _ActivityTab extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: _MiniStat(
-                              value: '$done', label: 'concluídas'),
+                              value: '$done',
+                              label: t.evolutionCompleted),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: _MiniStat(
                               value: '${total - done}',
-                              label: 'pendentes'),
+                              label: t.evolutionPending),
                         ),
                       ],
                     ),
@@ -315,7 +327,7 @@ class _ActivityTab extends ConsumerWidget {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (_, _) =>
-                  const Center(child: Text('Erro ao carregar')),
+                  Center(child: Text(t.patientLoadingError)),
             ),
           ),
         ],
@@ -330,6 +342,7 @@ class _ProfileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       children: [
@@ -363,9 +376,28 @@ class _ProfileTab extends ConsumerWidget {
           child: Column(
             children: [
               ListTile(
+                leading: const Icon(Icons.settings_outlined,
+                    color: MtColors.muted),
+                title: Text(t.profileSettings),
+                trailing: const Icon(Icons.chevron_right,
+                    color: MtColors.muted),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                ),
+              ),
+              const Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: MtColors.border),
+              ListTile(
                 leading: const Icon(Icons.lock_outline,
                     color: MtColors.muted),
-                title: const Text('Privacidade'),
+                title: Text(t.profilePrivacy),
                 trailing: const Icon(Icons.chevron_right,
                     color: MtColors.muted),
                 onTap: () {},
@@ -379,7 +411,7 @@ class _ProfileTab extends ConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.help_outline,
                     color: MtColors.muted),
-                title: const Text('Ajuda'),
+                title: Text(t.profileHelp),
                 trailing: const Icon(Icons.chevron_right,
                     color: MtColors.muted),
                 onTap: () {},
@@ -392,8 +424,8 @@ class _ProfileTab extends ConsumerWidget {
                   color: MtColors.border),
               ListTile(
                 leading: const Icon(Icons.logout, color: MtColors.coral),
-                title: const Text('Sair',
-                    style: TextStyle(color: MtColors.coral)),
+                title: Text(t.signOut,
+                    style: const TextStyle(color: MtColors.coral)),
                 onTap: () => ref.read(authServiceProvider).signOut(),
               ),
             ],
@@ -412,11 +444,13 @@ class _NextSessionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final localeName = Localizations.localeOf(context).toString();
     final isToday = _isToday(session.scheduledAt);
     final hour = DateFormat('HH:mm').format(session.scheduledAt);
     final headline = isToday
-        ? 'Hoje, $hour'
-        : '${DateFormat('EEE d/MM', 'pt_BR').format(session.scheduledAt)}, $hour';
+        ? t.patientTodayAt(hour)
+        : '${DateFormat.MMMEd(localeName).format(session.scheduledAt)}, $hour';
 
     return Stack(
       children: [
@@ -431,7 +465,7 @@ class _NextSessionCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'SUA PRÓXIMA SESSÃO',
+                t.patientNextSessionKicker,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 11,
@@ -451,7 +485,10 @@ class _NextSessionCard extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'com ${_titledTherapist()} · ${session.specialty.label}',
+                t.patientWithTherapist(
+                  t.patientYourTherapist,
+                  session.specialty.localizedLabel(context),
+                ),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 13,
@@ -467,13 +504,12 @@ class _NextSessionCard extends ConsumerWidget {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Sala de vídeo em breve.')),
+                    SnackBar(content: Text(t.videoRoomSoon)),
                   );
                 },
                 icon: const Icon(Icons.videocam_outlined,
                     color: Colors.white, size: 18),
-                label: const Text('Entrar na sala'),
+                label: Text(t.patientJoinRoom),
               ),
             ],
           ),
@@ -493,11 +529,6 @@ class _NextSessionCard extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  String _titledTherapist() {
-    // Sem dado real do nome do terapeuta — mostra placeholder.
-    return 'seu terapeuta';
   }
 
   bool _isToday(DateTime t) {
@@ -531,6 +562,7 @@ class _NoSessionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -541,9 +573,9 @@ class _NoSessionCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'NENHUMA SESSÃO AGENDADA',
-            style: TextStyle(
+          Text(
+            t.patientNoSessionKicker,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -551,9 +583,9 @@ class _NoSessionCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Tudo tranquilo por aqui.',
-            style: TextStyle(
+          Text(
+            t.patientAllQuiet,
+            style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.w700),
@@ -561,8 +593,8 @@ class _NoSessionCard extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             therapistId == null
-                ? 'Vincule-se a um terapeuta para começar.'
-                : 'Seu terapeuta agendará a próxima quando estiver disponível.',
+                ? t.patientLinkTherapist
+                : t.patientTherapistWillSchedule,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.85),
                 fontSize: 13),
@@ -581,6 +613,7 @@ class _ActivitiesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final today = tasks.where(_isForToday).toList();
     final completed =
         today.where((t) => t.status == TaskStatus.completed).length;
@@ -594,12 +627,12 @@ class _ActivitiesSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
-          children: const [
-            Icon(Icons.assignment_outlined,
+          children: [
+            const Icon(Icons.assignment_outlined,
                 color: MtColors.muted, size: 36),
-            SizedBox(height: 8),
-            Text('Nenhuma atividade ainda.',
-                style: TextStyle(
+            const SizedBox(height: 8),
+            Text(l.patientNoActivities,
+                style: const TextStyle(
                     color: MtColors.muted, fontSize: 13)),
           ],
         ),
@@ -614,8 +647,8 @@ class _ActivitiesSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Text('Atividades para hoje',
-                style: TextStyle(
+            Text(l.patientActivitiesForToday,
+                style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 15)),
             const Spacer(),
             Text(
@@ -630,9 +663,9 @@ class _ActivitiesSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        ...list.map((t) => Padding(
+        ...list.map((task) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _ActivityTile(task: t, onComplete: () => onComplete(t)),
+              child: _ActivityTile(task: task, onComplete: () => onComplete(task)),
             )),
       ],
     );
@@ -712,7 +745,7 @@ class _ActivityTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _subtitle(task),
+                      _subtitle(context, task),
                       style: const TextStyle(
                           color: MtColors.muted, fontSize: 12),
                     ),
@@ -729,11 +762,15 @@ class _ActivityTile extends StatelessWidget {
     );
   }
 
-  String _subtitle(TaskModel t) {
-    final status = t.status == TaskStatus.completed
-        ? 'concluído'
-        : 'pendente';
-    return '${t.description.isEmpty ? "atividade" : t.description.split('.').first} · $status';
+  String _subtitle(BuildContext context, TaskModel task) {
+    final l = AppLocalizations.of(context);
+    final status = task.status == TaskStatus.completed
+        ? l.taskCompleted
+        : l.taskPending;
+    final body = task.description.isEmpty
+        ? l.taskDefaultActivity
+        : task.description.split('.').first;
+    return '$body · $status';
   }
 }
 

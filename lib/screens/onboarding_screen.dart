@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/user_model.dart';
 import '../widgets/brand_mark.dart';
 import 'auth/login_screen.dart';
@@ -11,6 +12,7 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: MtColors.surface,
       body: SafeArea(
@@ -41,7 +43,7 @@ class OnboardingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'cuidado conectado',
+                      t.appTagline,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 14,
@@ -69,7 +71,7 @@ class OnboardingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Como você quer entrar?',
+                      t.onboardingHowToEnter,
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
@@ -77,15 +79,15 @@ class OnboardingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Escolha seu perfil de acesso',
+                      t.onboardingChooseProfile,
                       style: TextStyle(
                           color: MtColors.muted, fontSize: 13),
                     ),
                     const SizedBox(height: 20),
                     _RoleTile(
                       icon: Icons.medical_services_outlined,
-                      title: 'Sou terapeuta',
-                      subtitle: 'Gerenciar pacientes e sessões',
+                      title: t.onboardingImTherapist,
+                      subtitle: t.onboardingTherapistSubtitle,
                       filled: true,
                       onTap: () => _go(context, UserRole.therapist),
                     ),
@@ -93,8 +95,8 @@ class OnboardingScreen extends StatelessWidget {
                     _RoleTile(
                       icon: Icons.favorite_border_rounded,
                       iconColor: MtColors.coral,
-                      title: 'Sou paciente',
-                      subtitle: 'Acompanhar minha jornada',
+                      title: t.onboardingImPatient,
+                      subtitle: t.onboardingPatientSubtitle,
                       filled: false,
                       onTap: () => _go(context, UserRole.patient),
                     ),
@@ -106,7 +108,7 @@ class OnboardingScreen extends StatelessWidget {
                           MaterialPageRoute(
                               builder: (_) => const LoginScreen()),
                         ),
-                        child: const Text('Já tenho conta — Entrar'),
+                        child: Text(t.onboardingHaveAccount),
                       ),
                     ),
                   ],

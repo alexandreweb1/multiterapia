@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../core/theme/app_theme.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -59,7 +60,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Falha ao enviar: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).chatSendFailed(e.toString()),
+            ),
+          ),
         );
       }
     }
@@ -78,6 +83,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final me = ref.watch(currentUserProvider).valueOrNull;
     final messagesAsync = ref.watch(chatMessagesProvider(_chatId));
     final initials = _initials(widget.peerName);
@@ -123,7 +129,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w600)),
                   Text(
-                    widget.peerSubtitle ?? 'online',
+                    widget.peerSubtitle ?? t.chatOnline,
                     style: const TextStyle(
                         color: MtColors.muted, fontSize: 11),
                   ),
@@ -152,10 +158,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: messagesAsync.when(
                 data: (messages) {
                   if (messages.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
-                        'Diga olá!',
-                        style: TextStyle(
+                        t.chatNoMessages,
+                        style: const TextStyle(
                             color: MtColors.muted, fontSize: 13),
                       ),
                     );
@@ -181,8 +187,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
-                error: (_, _) => const Center(
-                  child: Text('Erro ao carregar mensagens'),
+                error: (_, _) => Center(
+                  child: Text(t.chatLoadingError),
                 ),
               ),
             ),
@@ -275,14 +281,15 @@ class _DateSeparator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final now = DateTime.now();
     final isToday = date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
     final hour = DateFormat('HH:mm').format(date);
     final label = isToday
-        ? '— hoje, $hour —'
-        : '— ${DateFormat('dd/MM').format(date)} —';
+        ? t.chatTodaySeparator(hour)
+        : t.chatDateSeparator(DateFormat('dd/MM').format(date));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Center(
@@ -330,14 +337,14 @@ class _InputBar extends StatelessWidget {
                       controller: controller,
                       minLines: 1,
                       maxLines: 4,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
-                        hintText: 'Escreva uma mensagem…',
+                        hintText: AppLocalizations.of(context).chatInputHint,
                         filled: false,
                         contentPadding:
-                            EdgeInsets.symmetric(vertical: 12),
+                            const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onSubmitted: (_) => onSend(),
                     ),

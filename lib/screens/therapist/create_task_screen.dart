@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/task_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
@@ -65,9 +66,10 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final t = AppLocalizations.of(context);
     if (_selectedPatient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um paciente')),
+        SnackBar(content: Text(t.taskSelectPatient)),
       );
       return;
     }
@@ -95,8 +97,8 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Terapia enviada com sucesso!'),
+          SnackBar(
+            content: Text(t.taskSendSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -104,8 +106,9 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t.taskSendError(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -114,11 +117,13 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final localeName = Localizations.localeOf(context).toString();
     final patientsAsync = ref.watch(therapistPatientsProvider);
-    final fmt = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
+    final fmt = DateFormat.yMd(localeName).add_Hm();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nova Terapia')),
+      appBar: AppBar(title: Text(t.taskNew)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -133,7 +138,7 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            'Nenhum paciente disponível.\nPacientes devem se cadastrar usando seu ID de vinculação.',
+                            t.taskNoPatients,
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
@@ -141,9 +146,9 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
                       )
                     : DropdownButtonFormField<UserModel>(
                         initialValue: _selectedPatient,
-                        decoration: const InputDecoration(
-                          labelText: 'Paciente',
-                          prefixIcon: Icon(Icons.person_outlined),
+                        decoration: InputDecoration(
+                          labelText: t.taskPatient,
+                          prefixIcon: const Icon(Icons.person_outlined),
                         ),
                         items: patients
                             .map((p) => DropdownMenuItem(
@@ -153,25 +158,23 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
                             .toList(),
                         onChanged: (p) =>
                             setState(() => _selectedPatient = p),
-                        validator: (_) => _selectedPatient == null
-                            ? 'Selecione um paciente'
-                            : null,
+                        validator: (_) =>
+                            _selectedPatient == null ? t.taskSelectPatient : null,
                       ),
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
-                error: (_, _) =>
-                    const Text('Erro ao carregar pacientes'),
+                error: (_, _) => Text(t.taskLoadingError),
               ),
               const SizedBox(height: 16),
 
               // ── Título ───────────────────────────────────────────────
               TextFormField(
                 controller: _titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Título da Terapia',
-                  prefixIcon: Icon(Icons.title),
+                decoration: InputDecoration(
+                  labelText: t.taskTitleLabel,
+                  prefixIcon: const Icon(Icons.title),
                 ),
-                validator: (v) => v!.isEmpty ? 'Informe o título' : null,
+                validator: (v) => v!.isEmpty ? t.taskTitleRequired : null,
               ),
               const SizedBox(height: 16),
 
@@ -179,12 +182,13 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                  prefixIcon: Icon(Icons.description_outlined),
+                decoration: InputDecoration(
+                  labelText: t.taskDescription,
+                  prefixIcon: const Icon(Icons.description_outlined),
                   alignLabelWithHint: true,
                 ),
-                validator: (v) => v!.isEmpty ? 'Informe a descrição' : null,
+                validator: (v) =>
+                    v!.isEmpty ? t.taskDescriptionRequired : null,
               ),
               const SizedBox(height: 16),
 
@@ -192,7 +196,7 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today),
-                title: const Text('Data e Hora agendada'),
+                title: Text(t.taskDatetime),
                 subtitle: Text(fmt.format(_scheduledAt)),
                 trailing: const Icon(Icons.edit_calendar_outlined),
                 onTap: _pickDateTime,
@@ -204,9 +208,9 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
               TextFormField(
                 controller: _instrCtrl,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Instruções para o paciente',
-                  prefixIcon: Icon(Icons.list_alt_outlined),
+                decoration: InputDecoration(
+                  labelText: t.taskInstructions,
+                  prefixIcon: const Icon(Icons.list_alt_outlined),
                   alignLabelWithHint: true,
                 ),
               ),
@@ -216,9 +220,9 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
               TextFormField(
                 controller: _linkCtrl,
                 keyboardType: TextInputType.url,
-                decoration: const InputDecoration(
-                  labelText: 'Link (opcional)',
-                  prefixIcon: Icon(Icons.link),
+                decoration: InputDecoration(
+                  labelText: t.taskLink,
+                  prefixIcon: const Icon(Icons.link),
                   hintText: 'https://...',
                 ),
               ),
@@ -233,7 +237,7 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.send),
-                label: const Text('Enviar Terapia'),
+                label: Text(t.taskSend),
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/brand_mark.dart';
@@ -48,7 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agree) {
-      _snack('Aceite os termos de uso para continuar.');
+      _snack(AppLocalizations.of(context).registerAcceptTerms);
       return;
     }
     setState(() => _isLoading = true);
@@ -76,7 +77,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         Navigator.of(context).popUntil((r) => r.isFirst);
       }
     } catch (e) {
-      if (mounted) _snack(_parseError(e.toString()));
+      if (mounted) {
+        _snack(_parseError(AppLocalizations.of(context), e.toString()));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -91,23 +94,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  String _parseError(String error) {
-    if (error.contains('email-already-in-use')) return 'E-mail já cadastrado.';
-    if (error.contains('weak-password')) return 'Senha fraca (mínimo 6 caracteres).';
-    if (error.contains('invalid-email')) return 'E-mail inválido.';
-    if (error.contains('ID do terapeuta')) return 'ID do terapeuta inválido.';
+  String _parseError(AppLocalizations t, String error) {
+    if (error.contains('email-already-in-use')) return t.errorEmailInUse;
+    if (error.contains('weak-password')) return t.errorWeakPassword;
+    if (error.contains('invalid-email')) return t.errorInvalidEmail;
+    if (error.contains('ID do terapeuta')) return t.errorInvalidTherapistId;
     if (error.contains('permission-denied') ||
         error.contains('permissão negada')) {
-      return 'Permissão negada pelo Firestore. Verifique as regras (firestore.rules) publicadas no console.';
+      return t.errorPermissionDenied;
     }
-    if (error.contains('network-request-failed')) {
-      return 'Sem conexão. Verifique sua internet.';
-    }
-    return 'Erro ao cadastrar: $error';
+    if (error.contains('network-request-failed')) return t.errorNetwork;
+    return t.errorSignupGeneric(error);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final isTherapist = _role == UserRole.therapist;
     return Scaffold(
       body: SafeArea(
@@ -135,7 +137,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 16),
 
                 Text(
-                  'Criar conta',
+                  t.registerCreateAccount,
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium
@@ -143,7 +145,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Comece sua jornada em poucos passos.',
+                  t.registerSubtitle,
                   style: TextStyle(color: MtColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 20),
@@ -156,95 +158,99 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // ── Nome ─────────────────────────────────────────────
-                _FieldLabel('Nome completo'),
+                _FieldLabel(t.registerFullName),
                 TextFormField(
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    hintText: 'Como você quer ser chamado(a)',
+                  decoration: InputDecoration(
+                    hintText: t.registerFullNameHint,
                   ),
-                  validator: (v) => v!.isEmpty ? 'Informe seu nome' : null,
+                  validator: (v) => v!.isEmpty ? t.registerNameRequired : null,
                 ),
                 const SizedBox(height: 16),
 
                 // ── E-mail ───────────────────────────────────────────
-                _FieldLabel(isTherapist ? 'E-mail profissional' : 'E-mail'),
+                _FieldLabel(
+                    isTherapist ? t.registerEmailProfessional : t.loginEmail),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'seu@email.com',
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Informe o e-mail' : null,
+                  decoration: InputDecoration(hintText: t.loginEmailHint),
+                  validator: (v) => v!.isEmpty ? t.loginEmailRequired : null,
                 ),
                 const SizedBox(height: 16),
 
                 // ── Especialidade (terapeuta) ────────────────────────
                 if (isTherapist) ...[
-                  _FieldLabel('Especialidade'),
+                  _FieldLabel(t.registerSpecialty),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
                       _SpecChip(
-                        label: 'Fonoaudiologia',
+                        label: t.specialtyFonoLabel,
                         selected: _specialty == Specialty.fono,
-                        onTap: () => setState(() => _specialty = Specialty.fono),
+                        onTap: () =>
+                            setState(() => _specialty = Specialty.fono),
                       ),
                       _SpecChip(
-                        label: 'Fisioterapia',
+                        label: t.specialtyFisioLabel,
                         selected: _specialty == Specialty.fisio,
-                        onTap: () => setState(() => _specialty = Specialty.fisio),
+                        onTap: () =>
+                            setState(() => _specialty = Specialty.fisio),
                       ),
                       _SpecChip(
-                        label: 'Psicologia',
+                        label: t.specialtyPsicoLabel,
                         selected: _specialty == Specialty.psico,
-                        onTap: () => setState(() => _specialty = Specialty.psico),
+                        onTap: () =>
+                            setState(() => _specialty = Specialty.psico),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _FieldLabel('Registro profissional'),
+                  _FieldLabel(t.registerRegistry),
                   TextFormField(
                     controller: _registryCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'CRFa 5/12345',
+                    decoration: InputDecoration(
+                      hintText: t.registerRegistryHint,
                     ),
                     validator: (v) =>
-                        v!.isEmpty ? 'Informe seu registro' : null,
+                        v!.isEmpty ? t.registerRegistryRequired : null,
                   ),
                   const SizedBox(height: 16),
                 ],
 
                 // ── Idade + Terapeuta ID (paciente) ──────────────────
                 if (!isTherapist) ...[
-                  _FieldLabel('Idade'),
+                  _FieldLabel(t.registerAge),
                   TextFormField(
                     controller: _ageCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(hintText: 'Ex: 28'),
-                    validator: (v) => v!.isEmpty ? 'Informe a idade' : null,
+                    decoration:
+                        InputDecoration(hintText: t.registerAgeHint),
+                    validator: (v) =>
+                        v!.isEmpty ? t.registerAgeRequired : null,
                   ),
                   const SizedBox(height: 16),
-                  _FieldLabel('ID do terapeuta'),
+                  _FieldLabel(t.registerTherapistId),
                   TextFormField(
                     controller: _therapistIdCtrl,
-                    decoration: const InputDecoration(
-                      hintText: 'Cole o ID fornecido pelo seu terapeuta',
+                    decoration: InputDecoration(
+                      hintText: t.registerTherapistIdHint,
                     ),
                     validator: (v) =>
-                        v!.isEmpty ? 'Informe o ID do terapeuta' : null,
+                        v!.isEmpty ? t.registerTherapistIdRequired : null,
                   ),
                   const SizedBox(height: 16),
                 ],
 
                 // ── Senha ────────────────────────────────────────────
-                _FieldLabel('Senha'),
+                _FieldLabel(t.loginPassword),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    hintText: 'Mínimo 6 caracteres',
+                    hintText: t.registerPasswordHint,
                     suffixIcon: IconButton(
                       iconSize: 18,
                       color: MtColors.muted,
@@ -256,7 +262,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   validator: (v) =>
-                      v!.length < 6 ? 'Mínimo 6 caracteres' : null,
+                      v!.length < 6 ? t.registerPasswordWeak : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -279,19 +285,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
+                        text: TextSpan(
+                          style: const TextStyle(
                               color: MtColors.ink, fontSize: 12),
                           children: [
-                            TextSpan(text: 'Concordo com os '),
+                            TextSpan(text: t.registerTermsPrefix),
                             TextSpan(
-                                text: 'termos de uso',
-                                style: TextStyle(
+                                text: t.registerTermsLink,
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w600)),
-                            TextSpan(text: ' e a '),
+                            TextSpan(text: t.registerTermsAnd),
                             TextSpan(
-                                text: 'política de privacidade.',
-                                style: TextStyle(
+                                text: t.registerPrivacyLink,
+                                style: const TextStyle(
                                     fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -315,7 +321,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.arrow_forward),
-                  label: const Text('Criar conta'),
+                  label: Text(t.registerCreateAccountButton),
                 ),
                 const SizedBox(height: 24),
               ],
@@ -355,6 +361,7 @@ class _RoleSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: MtColors.surfaceCard,
@@ -364,10 +371,10 @@ class _RoleSegment extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       child: Row(
         children: [
-          _segmentButton(
-              'Terapeuta', role == UserRole.therapist, () => onChanged(UserRole.therapist)),
-          _segmentButton(
-              'Paciente', role == UserRole.patient, () => onChanged(UserRole.patient)),
+          _segmentButton(t.registerTherapist, role == UserRole.therapist,
+              () => onChanged(UserRole.therapist)),
+          _segmentButton(t.registerPatient, role == UserRole.patient,
+              () => onChanged(UserRole.patient)),
         ],
       ),
     );

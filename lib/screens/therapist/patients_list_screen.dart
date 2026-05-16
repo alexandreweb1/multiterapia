@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/session_provider.dart';
@@ -24,6 +26,7 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final patientsAsync = ref.watch(therapistPatientsProvider);
     final weekSessionsAsync =
         ref.watch(therapistWeekSessionsProvider(DateTime.now()));
@@ -34,13 +37,13 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Pacientes'),
+        title: Text(t.patientsTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.tune, size: 20),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Filtros avançados em breve.')),
+                SnackBar(content: Text(t.patientsAdvancedFiltersSoon)),
               );
             },
           ),
@@ -52,10 +55,10 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
             child: TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search,
                     color: MtColors.muted, size: 20),
-                hintText: 'Buscar paciente…',
+                hintText: t.patientsSearchHint,
               ),
               onChanged: (v) =>
                   setState(() => _query = v.trim().toLowerCase()),
@@ -70,25 +73,25 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _FilterChip(
-                  label: 'Todos',
+                  label: t.patientsFilterAll,
                   selected: _filter == null,
                   onTap: () => setState(() => _filter = null),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Fono',
+                  label: t.specialtyFonoShort,
                   selected: _filter == Specialty.fono,
                   onTap: () => setState(() => _filter = Specialty.fono),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Fisio',
+                  label: t.specialtyFisioShort,
                   selected: _filter == Specialty.fisio,
                   onTap: () => setState(() => _filter = Specialty.fisio),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Psico',
+                  label: t.specialtyPsicoShort,
                   selected: _filter == Specialty.psico,
                   onTap: () => setState(() => _filter = Specialty.psico),
                 ),
@@ -121,8 +124,8 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
                           const SizedBox(height: 12),
                           Text(
                             patients.isEmpty
-                                ? 'Nenhum paciente vinculado.\nCompartilhe seu ID para que eles se cadastrem.'
-                                : 'Nenhum paciente corresponde aos filtros.',
+                                ? t.patientsEmpty
+                                : t.patientsEmptyFiltered,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                                 color: MtColors.muted, fontSize: 13),
@@ -161,7 +164,7 @@ class _PatientsListScreenState extends ConsumerState<PatientsListScreen> {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (_, _) =>
-                  const Center(child: Text('Erro ao carregar pacientes')),
+                  Center(child: Text(t.patientsLoadingError)),
             ),
           ),
         ],
@@ -267,7 +270,7 @@ class _PatientCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _ageSpecialty(patient),
+                      _ageSpecialty(context, patient),
                       style: const TextStyle(
                           color: MtColors.muted, fontSize: 12),
                     ),
@@ -277,13 +280,13 @@ class _PatientCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Próx.',
-                    style:
-                        TextStyle(color: MtColors.muted, fontSize: 11),
+                  Text(
+                    AppLocalizations.of(context).patientsNextShort,
+                    style: const TextStyle(
+                        color: MtColors.muted, fontSize: 11),
                   ),
                   Text(
-                    _nextLabel(next),
+                    _nextLabel(context, next),
                     style: const TextStyle(
                       color: MtColors.coral,
                       fontWeight: FontWeight.w600,
@@ -299,13 +302,16 @@ class _PatientCard extends StatelessWidget {
     );
   }
 
-  String _ageSpecialty(UserModel p) {
-    final age = p.age != null ? '${p.age} anos' : 'idade —';
-    return '$age · ${p.specialty.short}';
+  String _ageSpecialty(BuildContext context, UserModel p) {
+    final t = AppLocalizations.of(context);
+    final age = p.age != null ? t.patientAgeYears(p.age!) : t.patientAgeUnknown;
+    return '$age · ${p.specialty.localizedShort(context)}';
   }
 
-  String _nextLabel(SessionModel? s) {
+  String _nextLabel(BuildContext context, SessionModel? s) {
     if (s == null) return '—';
+    final t = AppLocalizations.of(context);
+    final localeName = Localizations.localeOf(context).toString();
     final now = DateTime.now();
     final sameDay = s.scheduledAt.year == now.year &&
         s.scheduledAt.month == now.month &&
@@ -315,9 +321,9 @@ class _PatientCard extends StatelessWidget {
         s.scheduledAt.month == tomorrow.month &&
         s.scheduledAt.day == tomorrow.day;
     final hh = DateFormat('HH:mm').format(s.scheduledAt);
-    if (sameDay) return 'hoje $hh';
-    if (isTomorrow) return 'amanhã $hh';
-    final dow = DateFormat('EEE', 'pt_BR').format(s.scheduledAt);
+    if (sameDay) return '${t.patientsToday} $hh';
+    if (isTomorrow) return '${t.patientsTomorrow} $hh';
+    final dow = DateFormat.E(localeName).format(s.scheduledAt);
     return '$dow $hh';
   }
 }

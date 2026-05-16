@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
-import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/initials_avatar.dart';
 
@@ -79,7 +80,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     } catch (_) {}
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sessão finalizada.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).sessionFinished),
+        ),
       );
       Navigator.pop(context);
     }
@@ -91,7 +94,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           widget.session.id, _notesCtrl.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notas salvas.')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).sessionNotesSaved),
+          ),
         );
       }
     } catch (_) {}
@@ -99,6 +104,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final s = widget.session;
     final isLive = _status == SessionStatus.live;
     final timeLabel = isLive
@@ -113,11 +119,13 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ),
         title: Column(
           children: [
-            Text('Sessão #${s.number > 0 ? s.number : ""}'.trim(),
+            Text(t.sessionTitleNumbered(s.number > 0 ? s.number.toString() : '').trim(),
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600)),
             Text(
-              isLive ? 'em andamento · $timeLabel' : 'agendada · $timeLabel',
+              isLive
+                  ? t.sessionStatusOngoing(timeLabel)
+                  : t.sessionStatusScheduled(timeLabel),
               style:
                   const TextStyle(fontSize: 11, color: MtColors.muted),
             ),
@@ -127,7 +135,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
             onPressed: _saveNotes,
-            tooltip: 'Salvar notas',
+            tooltip: t.sessionSaveNotesTooltip,
           ),
         ],
       ),
@@ -154,7 +162,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15)),
                         const SizedBox(height: 2),
-                        Text(s.specialty.label,
+                        Text(s.specialty.localizedLabel(context),
                             style: const TextStyle(
                                 color: MtColors.muted, fontSize: 12)),
                       ],
@@ -173,9 +181,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Anotações da sessão',
-                      style: TextStyle(
+                    Text(
+                      t.sessionNotesTitle,
+                      style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
@@ -192,12 +200,11 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                           TextField(
                             controller: _notesCtrl,
                             maxLines: 6,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              hintText:
-                                  'Escreva observações sobre a sessão…',
+                              hintText: t.sessionNotesHint,
                               contentPadding: EdgeInsets.zero,
                               filled: false,
                             ),
@@ -216,7 +223,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                         color: MtColors.muted),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Editado ${_relative(s.notesUpdatedAt!)}',
+                                      t.sessionNotesEdited(
+                                          _relative(t, s.notesUpdatedAt!)),
                                       style: const TextStyle(
                                           fontSize: 11,
                                           color: MtColors.muted),
@@ -229,9 +237,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Exercícios atribuídos',
-                      style: TextStyle(
+                    Text(
+                      t.sessionExercisesTitle,
+                      style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
@@ -239,16 +247,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                       icon: Icons.air,
                       iconBg: MtColors.fisioBg,
                       iconColor: MtColors.fisioFg,
-                      title: 'Respiração diafragmática',
-                      subtitle: '5x ao dia · 5 min',
+                      title: t.sessionExerciseBreathing,
+                      subtitle: t.sessionExerciseBreathingSubtitle,
                     ),
                     const SizedBox(height: 10),
                     _ExerciseTile(
                       icon: Icons.menu_book_outlined,
                       iconBg: MtColors.coralLight,
                       iconColor: MtColors.coral,
-                      title: 'Leitura em voz alta',
-                      subtitle: 'diário · 10 min',
+                      title: t.sessionExerciseReading,
+                      subtitle: t.sessionExerciseReadingSubtitle,
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -272,9 +280,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                     isLive ? Icons.check : Icons.play_arrow,
                     color: Colors.white,
                   ),
-                  label: Text(isLive
-                      ? 'Finalizar sessão'
-                      : 'Iniciar sessão'),
+                  label: Text(isLive ? t.sessionFinish : t.sessionStart),
                 ),
               ),
             ),
@@ -292,12 +298,12 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     return (first + last).toUpperCase();
   }
 
-  String _relative(DateTime t) {
-    final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 1) return 'há instantes';
-    if (diff.inMinutes < 60) return 'há ${diff.inMinutes} min';
-    if (diff.inHours < 24) return 'há ${diff.inHours}h';
-    return DateFormat('dd/MM HH:mm').format(t);
+  String _relative(AppLocalizations t, DateTime when) {
+    final diff = DateTime.now().difference(when);
+    if (diff.inMinutes < 1) return t.relativeJustNow;
+    if (diff.inMinutes < 60) return t.relativeMinutes(diff.inMinutes);
+    if (diff.inHours < 24) return t.relativeHours(diff.inHours);
+    return DateFormat('dd/MM HH:mm').format(when);
   }
 }
 
@@ -313,11 +319,11 @@ class _LivePill extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          _PulseDot(),
-          SizedBox(width: 6),
-          Text('ao vivo',
-              style: TextStyle(
+        children: [
+          const _PulseDot(),
+          const SizedBox(width: 6),
+          Text(AppLocalizations.of(context).sessionLivePill,
+              style: const TextStyle(
                   color: MtColors.coral,
                   fontWeight: FontWeight.w600,
                   fontSize: 11)),

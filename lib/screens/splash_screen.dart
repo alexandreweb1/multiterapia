@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../widgets/brand_mark.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -7,6 +8,7 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: MtColors.teal,
       body: Center(
@@ -25,7 +27,7 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'cuidado conectado',
+              t.splashTagline,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.78),
                 fontSize: 14,

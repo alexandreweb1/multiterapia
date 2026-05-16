@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/session_provider.dart';
@@ -35,19 +37,17 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final localeName = Localizations.localeOf(context).toString();
     final monthYear =
-        DateFormat("MMMM · y", 'pt_BR').format(_selectedDay);
-    final weekTitle = monthYear
-        .split(' · ')
-        .asMap()
-        .entries
-        .map((e) => e.key == 0
-            ? e.value[0].toUpperCase() + e.value.substring(1)
-            : e.value)
-        .join(' · ');
+        DateFormat.yMMMM(localeName).format(_selectedDay);
+    final weekTitle = monthYear.isEmpty
+        ? monthYear
+        : monthYear[0].toUpperCase() + monthYear.substring(1);
 
     final week = _weekOfYear(_selectedDay);
-    final dayLabel = DateFormat("EEEE · d MMM", 'pt_BR').format(_selectedDay);
+    final dayLabel =
+        DateFormat.MMMEd(localeName).format(_selectedDay);
     final sessionsAsync =
         ref.watch(therapistWeekSessionsProvider(_selectedDay));
 
@@ -62,7 +62,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
             Text(weekTitle,
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w600)),
-            Text('semana $week',
+            Text(t.agendaWeek(week),
                 style:
                     const TextStyle(fontSize: 11, color: MtColors.muted)),
           ],
@@ -159,7 +159,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (_, _) =>
-                  const Center(child: Text('Erro ao carregar agenda')),
+                  Center(child: Text(t.agendaLoadingError)),
             ),
           ),
         ],
@@ -171,12 +171,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   String _sessionsCountLabel(AsyncValue<List<SessionModel>> async) {
+    final t = AppLocalizations.of(context);
     final list = async.valueOrNull ?? const [];
     final today =
         list.where((s) => _sameDay(s.scheduledAt, _selectedDay)).length;
-    if (today == 0) return 'sem sessões';
-    if (today == 1) return '1 sessão';
-    return '$today sessões';
+    if (today == 0) return t.agendaSessionsCountZero;
+    if (today == 1) return t.agendaSessionsCountOne;
+    return t.agendaSessionsCountMany(today);
   }
 
   Future<void> _pickDate() async {
@@ -203,10 +204,19 @@ class _DayChip extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _names = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  static List<String> _dowNames(AppLocalizations t) => [
+        t.dowMon,
+        t.dowTue,
+        t.dowWed,
+        t.dowThu,
+        t.dowFri,
+        t.dowSat,
+        t.dowSun,
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -221,7 +231,7 @@ class _DayChip extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              _names[date.weekday - 1],
+              _dowNames(t)[date.weekday - 1],
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -315,7 +325,7 @@ class _AgendaRow extends StatelessWidget {
                                     fontSize: 14)),
                             const SizedBox(height: 2),
                             Text(
-                              '${session.specialty.short} · ${session.durationMinutes} min${session.online ? " · online" : ""}',
+                              '${session.specialty.localizedShort(context)} · ${session.durationMinutes} min${session.online ? " · online" : ""}',
                               style: const TextStyle(
                                   color: MtColors.muted, fontSize: 12),
                             ),
@@ -349,13 +359,13 @@ class _EmptyDay extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        children: const [
-          Icon(Icons.event_available_outlined,
+        children: [
+          const Icon(Icons.event_available_outlined,
               color: MtColors.muted, size: 32),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
-            'Sem sessões neste dia.',
-            style: TextStyle(color: MtColors.muted, fontSize: 13),
+            AppLocalizations.of(context).agendaNoSessionsDay,
+            style: const TextStyle(color: MtColors.muted, fontSize: 13),
           ),
         ],
       ),
@@ -390,9 +400,10 @@ class _FreeSlotHint extends StatelessWidget {
     if (gapStart == null || biggest.inMinutes < 30) {
       return const SizedBox.shrink();
     }
+    final t = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: MtColors.border)),
       ),
       child: Row(
@@ -401,7 +412,7 @@ class _FreeSlotHint extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Você tem horário livre entre ${fmt.format(gapStart)} e ${fmt.format(gapEnd!)}.',
+              t.agendaFreeSlot(fmt.format(gapStart), fmt.format(gapEnd!)),
               style: const TextStyle(
                   color: MtColors.muted, fontSize: 12),
             ),
@@ -415,16 +426,16 @@ class _FreeSlotHint extends StatelessWidget {
 class _BlockTimeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Bloqueio de horário ainda não implementado.')),
+          SnackBar(content: Text(t.agendaBlockNotImplemented)),
         );
       },
       icon: const Icon(Icons.add, size: 18, color: MtColors.teal),
-      label: const Text('Bloquear horário',
-          style: TextStyle(color: MtColors.teal)),
+      label: Text(t.agendaBlockTime,
+          style: const TextStyle(color: MtColors.teal)),
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: MtColors.border),
         backgroundColor: MtColors.surfaceCard,

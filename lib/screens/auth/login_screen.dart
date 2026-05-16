@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/brand_mark.dart';
 import 'register_screen.dart';
@@ -40,9 +41,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_parseError(e.toString())),
+            content: Text(_parseError(t, e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -52,23 +54,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  String _parseError(String error) {
-    if (error.contains('user-not-found')) return 'Usuário não encontrado.';
-    if (error.contains('wrong-password') || error.contains('invalid-credential')) {
-      return 'E-mail ou senha incorretos.';
+  String _parseError(AppLocalizations t, String error) {
+    if (error.contains('user-not-found')) return t.errorUserNotFound;
+    if (error.contains('wrong-password') ||
+        error.contains('invalid-credential')) {
+      return t.errorWrongPassword;
     }
-    if (error.contains('invalid-email')) return 'E-mail inválido.';
-    if (error.contains('too-many-requests')) {
-      return 'Muitas tentativas. Tente novamente em instantes.';
-    }
-    if (error.contains('network-request-failed')) {
-      return 'Sem conexão. Verifique sua internet.';
-    }
-    return 'Erro ao fazer login: $error';
+    if (error.contains('invalid-email')) return t.errorInvalidEmail;
+    if (error.contains('too-many-requests')) return t.errorTooManyRequests;
+    if (error.contains('network-request-failed')) return t.errorNetwork;
+    return t.errorLoginGeneric(error);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -87,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // ── Heading ─────────────────────────────────────────
                 Text(
-                  'Bem-vinda\nde volta.',
+                  t.loginWelcomeBack,
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         height: 1.1,
@@ -95,27 +95,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Entre para continuar seu cuidado.',
+                  t.loginSubtitle,
                   style: TextStyle(color: MtColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 32),
 
                 // ── E-mail ──────────────────────────────────────────
-                _FieldLabel('E-mail'),
+                _FieldLabel(t.loginEmail),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.mail_outline,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.mail_outline,
                         color: MtColors.muted, size: 20),
-                    hintText: 'seu@email.com',
+                    hintText: t.loginEmailHint,
                   ),
-                  validator: (v) => v!.isEmpty ? 'Informe o e-mail' : null,
+                  validator: (v) => v!.isEmpty ? t.loginEmailRequired : null,
                 ),
                 const SizedBox(height: 18),
 
                 // ── Senha ───────────────────────────────────────────
-                _FieldLabel('Senha'),
+                _FieldLabel(t.loginPassword),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           () => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (v) => v!.isEmpty ? 'Informe a senha' : null,
+                  validator: (v) => v!.isEmpty ? t.loginPasswordRequired : null,
                 ),
                 const SizedBox(height: 6),
                 Align(
@@ -144,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       textStyle: const TextStyle(
                           fontSize: 12, fontWeight: FontWeight.w500),
                     ),
-                    child: const Text('Esqueci minha senha'),
+                    child: Text(t.loginForgotPassword),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -159,7 +159,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Entrar'),
+                      : Text(t.loginSignIn),
                 ),
                 const SizedBox(height: 24),
 
@@ -172,7 +172,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'ou continue com',
+                        t.loginOrContinue,
                         style: TextStyle(
                             color: MtColors.muted, fontSize: 12),
                       ),
@@ -210,7 +210,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: RichText(
                     text: TextSpan(
-                      text: 'Não tem conta? ',
+                      text: t.loginNoAccountPrefix,
                       style: TextStyle(
                           color: MtColors.muted, fontSize: 13),
                       children: [
@@ -222,9 +222,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               MaterialPageRoute(
                                   builder: (_) => const RegisterScreen()),
                             ),
-                            child: const Text(
-                              'Cadastre-se',
-                              style: TextStyle(
+                            child: Text(
+                              t.loginSignUp,
+                              style: const TextStyle(
                                 color: MtColors.coral,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -245,24 +245,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _socialNotImplemented() {
+    final t = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Login social ainda não implementado.'),
-      ),
+      SnackBar(content: Text(t.loginSocialNotImplemented)),
     );
   }
 
   void _showForgotPassword() {
+    final t = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Esqueci minha senha'),
-        content: const Text(
-            'Em breve será possível recuperar a senha por e-mail.'),
+        title: Text(t.loginForgotPassword),
+        content: Text(t.loginForgotDialogBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(t.commonOk),
           ),
         ],
       ),

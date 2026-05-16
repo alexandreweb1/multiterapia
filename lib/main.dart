@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'models/user_model.dart';
 import 'providers/auth_provider.dart';
+import 'providers/locale_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/patient/patient_dashboard.dart';
 import 'screens/splash_screen.dart';
@@ -14,18 +16,23 @@ import 'screens/therapist/therapist_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Inicializa formatação para os 3 locales suportados.
   await initializeDateFormatting('pt_BR');
+  await initializeDateFormatting('en_US');
+  await initializeDateFormatting('es_ES');
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const ProviderScope(child: MultiterapiaApp()));
 }
 
-class MultiterapiaApp extends StatelessWidget {
+class MultiterapiaApp extends ConsumerWidget {
   const MultiterapiaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(localeProvider);
+
     return MaterialApp(
       title: 'Multiterapia',
       theme: AppTheme.lightTheme,
@@ -34,15 +41,13 @@ class MultiterapiaApp extends StatelessWidget {
       home: const AuthGate(),
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('pt', 'BR'),
-        Locale('en', 'US'),
-      ],
-      locale: const Locale('pt', 'BR'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: language.locale,
     );
   }
 }
@@ -97,6 +102,7 @@ class _IncompleteProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -108,20 +114,19 @@ class _IncompleteProfileScreen extends ConsumerWidget {
               const Icon(Icons.error_outline, size: 56),
               const SizedBox(height: 16),
               Text(
-                'Cadastro incompleto',
+                t.profileIncomplete,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Sua conta existe na autenticação, mas o perfil não foi gravado no banco. '
-                'Saia e crie o cadastro novamente.',
+              Text(
+                t.profileIncompleteBody,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => ref.read(authServiceProvider).signOut(),
-                child: const Text('Sair'),
+                child: Text(t.signOut),
               ),
             ],
           ),

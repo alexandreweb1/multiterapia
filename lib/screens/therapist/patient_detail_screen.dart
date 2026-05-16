@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
 import '../../models/task_model.dart';
 import '../../models/user_model.dart';
@@ -18,6 +20,7 @@ class PatientDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final tasksAsync = ref.watch(patientSpecificTasksProvider(patient.uid));
     final me = ref.watch(currentUserProvider).valueOrNull;
 
@@ -27,11 +30,11 @@ class PatientDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Paciente'),
+        title: Text(t.patientScreenTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline, size: 20),
-            tooltip: 'Mensagens',
+            tooltip: t.patientChatTooltip,
             onPressed: me == null
                 ? null
                 : () => Navigator.push(
@@ -74,7 +77,7 @@ class PatientDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _ageSpecialty(patient),
+                      _ageSpecialty(context, patient),
                       style: const TextStyle(
                           color: MtColors.muted, fontSize: 13),
                     ),
@@ -87,7 +90,7 @@ class PatientDetailScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'Em tratamento · ${_monthsLabel(patient.createdAt)}',
+                        t.patientInTreatment(_monthsLabel(t, patient.createdAt)),
                         style: const TextStyle(
                             color: MtColors.teal,
                             fontSize: 12,
@@ -110,7 +113,7 @@ class PatientDetailScreen extends ConsumerWidget {
                       child: Row(
                         children: [
                           Text(
-                            'Evolução · 8 semanas',
+                            t.patientEvolution8w,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14),
@@ -118,10 +121,10 @@ class PatientDetailScreen extends ConsumerWidget {
                           const Spacer(),
                           Text(
                             patient.specialty == Specialty.fono
-                                ? 'fonemas'
+                                ? t.patientMetricPhonemes
                                 : patient.specialty == Specialty.fisio
-                                    ? 'mobilidade'
-                                    : 'engajamento',
+                                    ? t.patientMetricMobility
+                                    : t.patientMetricEngagement,
                             style: const TextStyle(
                                 color: MtColors.muted, fontSize: 12),
                           ),
@@ -149,7 +152,7 @@ class PatientDetailScreen extends ConsumerWidget {
                       ? null
                       : () => _startSession(context, ref, me),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Iniciar sessão'),
+                  label: Text(t.patientStartSession),
                 ),
               ),
             ),
@@ -198,23 +201,25 @@ class PatientDetailScreen extends ConsumerWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
+      final t = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao iniciar sessão: $e')),
+        SnackBar(content: Text(t.patientStartSessionError(e.toString()))),
       );
     }
   }
 
-  String _ageSpecialty(UserModel p) {
-    final age = p.age != null ? '${p.age} anos' : 'idade —';
-    return '$age · ${p.specialty.label}';
+  String _ageSpecialty(BuildContext context, UserModel p) {
+    final t = AppLocalizations.of(context);
+    final age = p.age != null ? t.patientAgeYears(p.age!) : t.patientAgeUnknown;
+    return '$age · ${p.specialty.localizedLabel(context)}';
   }
 
-  String _monthsLabel(DateTime since) {
+  String _monthsLabel(AppLocalizations t, DateTime since) {
     final now = DateTime.now();
     final months = (now.year - since.year) * 12 + (now.month - since.month);
-    if (months < 1) return 'menos de 1 mês';
-    if (months == 1) return '1 mês';
-    return '$months meses';
+    if (months < 1) return t.durationLessThanMonth;
+    if (months == 1) return t.durationOneMonth;
+    return t.durationMonths(months);
   }
 }
 
@@ -226,6 +231,7 @@ class _KpiRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final total = tasks.length;
     final done =
         tasks.where((t) => t.status == TaskStatus.completed).length;
@@ -234,13 +240,13 @@ class _KpiRow extends StatelessWidget {
 
     return Row(
       children: [
-        _KpiCard(value: total.toString(), label: 'sessões'),
+        _KpiCard(value: total.toString(), label: l.patientKpiSessions),
         const SizedBox(width: 10),
-        _KpiCard(value: '$freq%', label: 'frequência'),
+        _KpiCard(value: '$freq%', label: l.patientKpiFrequency),
         const SizedBox(width: 10),
         _KpiCard(
             value: '${progress >= 0 ? '↑' : '↓'}${progress.abs()}%',
-            label: 'progresso',
+            label: l.patientKpiProgress,
             valueColor: MtColors.coral),
       ],
     );

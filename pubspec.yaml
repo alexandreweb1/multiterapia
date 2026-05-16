@@ -24,6 +24,7 @@ dependencies:
   intl: ^0.20.1
   uuid: ^4.4.0
   url_launcher: ^6.3.0
+  shared_preferences: ^2.3.0
 
   # Branding
   flutter_svg: ^2.0.10
@@ -38,6 +39,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/logo/
     - assets/splash/

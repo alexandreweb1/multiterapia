@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/l10n_helpers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/session_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../widgets/initials_avatar.dart';
+import '../settings_screen.dart';
 import 'agenda_screen.dart';
 import 'create_task_screen.dart';
 import 'patients_list_screen.dart';
@@ -27,8 +30,11 @@ class TherapistDashboard extends ConsumerWidget {
       },
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) =>
-          const Scaffold(body: Center(child: Text('Erro ao carregar perfil'))),
+      error: (_, _) => Scaffold(
+        body: Center(
+          child: Text(AppLocalizations.of(context).errorLoadingProfile),
+        ),
+      ),
     );
   }
 }
@@ -37,17 +43,19 @@ class _Body extends ConsumerWidget {
   final UserModel therapist;
   const _Body({required this.therapist});
 
-  String _greeting() {
+  String _greeting(AppLocalizations t) {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Bom dia,';
-    if (h < 18) return 'Boa tarde,';
-    return 'Boa noite,';
+    if (h < 12) return t.greetingMorning;
+    if (h < 18) return t.greetingAfternoon;
+    return t.greetingEvening;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final localeName = Localizations.localeOf(context).toString();
     final today = DateTime.now();
-    final fullDate = DateFormat("EEEE · d 'de' MMMM", 'pt_BR').format(today);
+    final fullDate = DateFormat.MMMMEEEEd(localeName).format(today);
 
     final sessionsAsync = ref.watch(therapistTodaySessionsProvider);
     final patientsAsync = ref.watch(therapistPatientsProvider);
@@ -60,14 +68,14 @@ class _Body extends ConsumerWidget {
             // ── Header (avatar + greeting + bell) ──────────────────
             _Header(
               therapist: therapist,
-              greeting: _greeting(),
+              greeting: _greeting(t),
               onAvatarTap: () => _showProfileMenu(context, ref),
             ),
             const SizedBox(height: 22),
 
             // ── Hoje + data ────────────────────────────────────────
             Text(
-              'Hoje',
+              t.today,
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     height: 1.05,
@@ -98,7 +106,7 @@ class _Body extends ConsumerWidget {
             Row(
               children: [
                 Text(
-                  'Próximas sessões',
+                  t.nextSessions,
                   style:
                       Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
@@ -116,7 +124,7 @@ class _Body extends ConsumerWidget {
                     textStyle: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w500),
                   ),
-                  child: const Text('Ver semana →'),
+                  child: Text(t.seeWeek),
                 ),
               ],
             ),
@@ -147,7 +155,7 @@ class _Body extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (_, _) =>
-                  const Center(child: Text('Erro ao carregar sessões')),
+                  Center(child: Text(t.errorLoadingSessions)),
             ),
           ],
         ),
@@ -166,13 +174,14 @@ class _Body extends ConsumerWidget {
   }
 
   void _showProfileMenu(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: MtColors.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheetCtx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
@@ -194,27 +203,40 @@ class _Body extends ConsumerWidget {
                 title: Text(therapist.name,
                     style:
                         const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(therapist.specialty.label),
+                subtitle: Text(therapist.specialty.localizedLabel(context)),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.copy, color: MtColors.teal),
-                title: const Text('Copiar meu ID de vinculação'),
-                subtitle: const Text(
-                    'Compartilhe com seus pacientes para que eles se cadastrem'),
+                title: Text(t.copyLinkId),
+                subtitle: Text(t.copyLinkIdSubtitle),
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: therapist.uid));
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ID copiado!')),
+                    SnackBar(content: Text(t.idCopied)),
+                  );
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.settings_outlined, color: MtColors.teal),
+                title: Text(t.profileSettings),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SettingsScreen(),
+                    ),
                   );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.logout, color: MtColors.coral),
-                title: const Text('Sair'),
+                title: Text(t.signOut),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
                   ref.read(authServiceProvider).signOut();
                 },
               ),
@@ -270,7 +292,9 @@ class _Header extends StatelessWidget {
         ),
         _BellButton(onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sem notificações por enquanto.')),
+            SnackBar(
+              content: Text(AppLocalizations.of(context).noNotifications),
+            ),
           );
         }),
       ],
@@ -339,6 +363,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final sessions = sessionsAsync.valueOrNull ?? const [];
     final patients = patientsAsync.valueOrNull ?? const [];
     final totalMin = sessions.fold<int>(0, (a, s) => a + s.durationMinutes);
@@ -346,24 +371,26 @@ class _StatsRow extends StatelessWidget {
     final mins = totalMin % 60;
     final hoursLabel = totalMin == 0
         ? '0h'
-        : (mins == 0 ? '${hours}h' : '${hours}h${mins.toString().padLeft(2, '0')}');
+        : (mins == 0
+            ? '${hours}h'
+            : '${hours}h${mins.toString().padLeft(2, '0')}');
 
     return Row(
       children: [
         _StatCard(
           value: sessions.length.toString(),
-          label: 'sessões',
+          label: t.statSessions,
         ),
         const SizedBox(width: 10),
         _StatCard(
           value: patients.length.toString(),
-          label: 'pacientes',
+          label: t.statPatients,
           onTap: onPatientsTap,
         ),
         const SizedBox(width: 10),
         _StatCard(
           value: hoursLabel,
-          label: 'previstas',
+          label: t.statScheduled,
         ),
       ],
     );
@@ -430,30 +457,34 @@ class _SessionCard extends StatelessWidget {
         Specialty.none => MtColors.muted,
       };
 
-  ({String label, Color bg, Color fg}) _statusChip() {
+  ({String label, Color bg, Color fg}) _statusChip(AppLocalizations t) {
     final now = DateTime.now();
     if (session.status == SessionStatus.live) {
       return (
-        label: 'Em andamento',
+        label: t.sessionStatusInProgress,
         bg: MtColors.coralLight,
         fg: MtColors.coral
       );
     }
     final diff = session.scheduledAt.difference(now);
     if (diff.isNegative) {
-      return (label: 'Atrasada', bg: MtColors.coralLight, fg: MtColors.coral);
+      return (
+        label: t.sessionStatusLate,
+        bg: MtColors.coralLight,
+        fg: MtColors.coral,
+      );
     }
     if (diff.inHours < 1 && diff.inMinutes < 30) {
       return (
-        label: 'Confirmada',
+        label: t.sessionStatusConfirmed,
         bg: MtColors.tealLight,
-        fg: MtColors.teal
+        fg: MtColors.teal,
       );
     }
     return (
       label: diff.inHours >= 1
-          ? 'em ${diff.inHours}h'
-          : 'em ${diff.inMinutes}min',
+          ? t.sessionInHours(diff.inHours)
+          : t.sessionInMinutes(diff.inMinutes),
       bg: MtColors.surface,
       fg: MtColors.muted,
     );
@@ -461,8 +492,9 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final timeFmt = DateFormat('HH:mm');
-    final chip = _statusChip();
+    final chip = _statusChip(t);
     return Material(
       color: MtColors.surfaceCard,
       shape: RoundedRectangleBorder(
@@ -500,7 +532,7 @@ class _SessionCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${session.specialty.short} · ${session.durationMinutes} min',
+                        '${session.specialty.localizedShort(context)} · ${session.durationMinutes} min',
                         style: const TextStyle(
                             color: MtColors.muted, fontSize: 12),
                       ),
@@ -549,12 +581,12 @@ class _EmptySessions extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.event_available_outlined,
+          const Icon(Icons.event_available_outlined,
               color: MtColors.muted, size: 36),
           const SizedBox(height: 8),
           Text(
-            'Sem sessões agendadas para hoje',
-            style: TextStyle(color: MtColors.muted, fontSize: 13),
+            AppLocalizations.of(context).noSessionsToday,
+            style: const TextStyle(color: MtColors.muted, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
