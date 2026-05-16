@@ -1,0 +1,26 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "multiterapia",
+          "appId": "1:566709013461:android:c5bf46fc9b808d10de4b5c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "multiterapia",
+          "configurations": {
+            "android": "1:566709013461:android:c5bf46fc9b808d10de4b5c",
+            "ios": "1:566709013461:ios:aef1868fb521147dde4b5c",
+            "web": "1:566709013461:web:25462c59d24f0058de4b5c"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Funções auxiliares ──────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isTherapist() {
+      return getUserRole() == 'therapist';
+    }
+
+    // ── Coleção: users ──────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        isOwner(userId) ||
+        (isTherapist() && resource.data.therapistId == request.auth.uid) ||
+        // Paciente pode ler o próprio terapeuta vinculado
+        (resource.data.role == 'therapist' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.therapistId == userId)
+      );
+
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if false;
+    }
+
+    // ── Coleção: tasks ──────────────────────────────────────────────────────
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && (
+        resource.data.therapistId == request.auth.uid ||
+        resource.data.patientId  == request.auth.uid
+      );
+
+      allow create: if isAuthenticated() && isTherapist() &&
+        request.resource.data.therapistId == request.auth.uid;
+
+      allow update: if isAuthenticated() && (
+        resource.data.therapistId == request.auth.uid ||
+        (
+          resource.data.patientId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'completedAt'])
+        )
+      );
+
+      allow delete: if isAuthenticated() &&
+        resource.data.therapistId == request.auth.uid;
+    }
+
+    // ── Coleção: sessions ───────────────────────────────────────────────────
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.therapistId == request.auth.uid ||
+        resource.data.patientId  == request.auth.uid
+      );
+
+      allow create: if isAuthenticated() && isTherapist() &&
+        request.resource.data.therapistId == request.auth.uid;
+
+      // Terapeuta pode atualizar tudo. Paciente: apenas check-in (status).
+      allow update: if isAuthenticated() && (
+        resource.data.therapistId == request.auth.uid ||
+        (
+          resource.data.patientId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status'])
+        )
+      );
+
+      allow delete: if isAuthenticated() &&
+        resource.data.therapistId == request.auth.uid;
+    }
+
+    // ── Coleção: chats / messages ───────────────────────────────────────────
+    // chatId no formato {therapistId}_{patientId}.
+    match /chats/{chatId} {
+      function chatPair() {
+        return chatId.split('_');
+      }
+      function isParticipant() {
+        return isAuthenticated() && (
+          chatPair()[0] == request.auth.uid ||
+          chatPair()[1] == request.auth.uid
+        );
+      }
+
+      allow read, write: if isParticipant();
+
+      match /messages/{msgId} {
+        allow read: if isParticipant();
+        allow create: if isParticipant() &&
+          request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

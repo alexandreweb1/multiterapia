@@ -1,0 +1,43 @@
+name: multiterapia
+description: "Multiterapia: aplicativo de gestão de terapias (Fonoaudiologia, Fisioterapia, etc.)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.4.0
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Utilities
+  intl: ^0.20.1
+  uuid: ^4.4.0
+  url_launcher: ^6.3.0
+
+  # Branding
+  flutter_svg: ^2.0.10
+  google_fonts: ^6.2.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo/
+    - assets/splash/

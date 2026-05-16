@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($src = \"android\\\\app\\\\src\\\\main\\\\kotlin\\\\com\\\\healththerapy\\\\health_therapy\"; $dst = \"android\\\\app\\\\src\\\\main\\\\kotlin\\\\com\\\\multiterapia\\\\multiterapia\"; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Move-Item -Force \"$src\\\\MainActivity.kt\" \"$dst\\\\MainActivity.kt\"; Remove-Item -Recurse -Force \"android\\\\app\\\\src\\\\main\\\\kotlin\\\\com\\\\healththerapy\"; Get-ChildItem -Recurse \"android\\\\app\\\\src\\\\main\\\\kotlin\")",
+      "PowerShell(Rename-Item \"health_therapy.iml\" \"multiterapia.iml\")",
+      "PowerShell(Rename-Item \"android\\\\health_therapy_android.iml\" \"android\\\\multiterapia_android.iml\")",
+      "PowerShell(Rename-Item -Path \"android\\\\health_therapy_android.iml\" -NewName \"multiterapia_android.iml\")",
+      "PowerShell(flutter --version)",
+      "PowerShell(flutter devices)",
+      "PowerShell(flutter clean)",
+      "PowerShell(flutter pub get)",
+      "PowerShell(flutter analyze --no-fatal-infos 2>&1)",
+      "PowerShell(flutter run -d chrome --web-port 5555)",
+      "Bash(powershell -NoProfile -Command \"Get-Content -Wait -Path 'C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-alexa-Documents-Projetos-healthTherapy\\\\5b979a31-0537-425a-8d3e-bba1a26e0570\\\\tasks\\\\bg9r3dujv.output' | Select-String -Pattern 'localhost|DevTools|is being served|hot reload|Error|Failed|Exception|Cannot|cannot|error'\")",
+      "PowerShell($env:Path += \";C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\"; Get-ChildItem \"C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\" | Select-Object Name; Write-Output \"---\"; & \"C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\\\\flutterfire.bat\" --version)",
+      "PowerShell(& cmd /c \"firebase login:list 2>&1\")",
+      "PowerShell(& cmd /c \"firebase projects:list 2>&1\")",
+      "PowerShell($env:Path += \";C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\"; & \"C:\\\\Users\\\\alexa\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\\\\flutterfire.bat\" configure --project=multiterapia --platforms=android,ios,web --yes)",
+      "PowerShell(flutter pub get 2>&1)",
+      "Bash(until grep *)",
+      "Read(//c/Users/alexa/AppData/Local/Temp/claude/c--Users-alexa-Documents-Projetos-healthTherapy/5b979a31-0537-425a-8d3e-bba1a26e0570/tasks/**)"
+    ]
+  }
+}
