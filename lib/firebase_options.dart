@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '566709013461',
     projectId: 'multiterapia',
     storageBucket: 'multiterapia.firebasestorage.app',
-    iosBundleId: 'com.multiterapia.multiterapia',
+    iosBundleId: 'com.multiterapia.app',
   );
 
 }
